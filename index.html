@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clash of Pepe V5 PRO</title>
+</head>
+<body>
+<h1>Clash of Pepe: Arena PRO (V5)</h1>
+<p>Client loaded. Connect via WebSocket to play.</p>
+<script>
+let socket;
+function connect(){
+    socket = new WebSocket("ws://localhost:8080");
+    socket.onopen = () => console.log("Connected");
+}
+connect();
+</script>
+</body>
+</html>
