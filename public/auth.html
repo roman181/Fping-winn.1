@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clash of Pepe: Login</title>
+    <style>
+        * { box-sizing: border-box; }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .auth-container {
+            background: rgba(10, 10, 10, 0.9);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 2px solid #d633ff;
+        }
+        
+        .logo {
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .title {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #d633ff;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #aaa;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #d633ff;
+            background: rgba(214, 51, 255, 0.1);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+        
+        .btn-primary {
+            background: #d633ff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #ff6b9d;
+            box-shadow: 0 10px 30px rgba(255, 107, 157, 0.3);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #d633ff;
+            border: 2px solid #d633ff;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(214, 51, 255, 0.2);
+        }
+        
+        .toggle-form {
+            text-align: center;
+            margin-top: 20px;
+            color: #aaa;
+        }
+        
+        .toggle-form a {
+            color: #d633ff;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        .toggle-form a:hover {
+            text-decoration: underline;
+        }
+        
+        .error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 2px solid #f44336;
+            color: #ff9999;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .error.show {
+            display: block;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            color: #d633ff;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(214, 51, 255, 0.3);
+            border-top: 3px solid #d633ff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="logo">🐸🧊🐧</div>
+        <div class="title">PEPE GANG WARS</div>
+        
+        <!-- LOGIN FORM -->
+        <div id="login-form" class="auth-form">
+            <div class="error" id="login-error"></div>
+            
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="login-username" placeholder="Dein Username" autocomplete="username">
+            </div>
+            
+            <div class="form-group">
+                <label>Passwort</label>
+                <input type="password" id="login-password" placeholder="Dein Passwort" autocomplete="current-password">
+            </div>
+            
+            <div class="loading" id="login-loading">
+                <div class="spinner"></div>
+                <div>Anmelden...</div>
+            </div>
+            
+            <button class="btn btn-primary" onclick="handleLogin()" id="login-btn">LOGIN</button>
+            
+            <div class="toggle-form">
+                Noch kein Konto? <a onclick="toggleForm()">Registrieren</a>
+            </div>
+        </div>
+        
+        <!-- REGISTER FORM -->
+        <div id="register-form" class="auth-form hidden">
+            <div class="error" id="register-error"></div>
+            
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="register-username" placeholder="3-20 Zeichen" autocomplete="username">
+            </div>
+            
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="register-email" placeholder="deine@email.com" autocomplete="email">
+            </div>
+            
+            <div class="form-group">
+                <label>Passwort</label>
+                <input type="password" id="register-password" placeholder="Min. 6 Zeichen" autocomplete="new-password">
+            </div>
+            
+            <div class="form-group">
+                <label>Passwort wiederholen</label>
+                <input type="password" id="register-password-confirm" placeholder="Passwort bestätigen" autocomplete="new-password">
+            </div>
+            
+            <div class="loading" id="register-loading">
+                <div class="spinner"></div>
+                <div>Registriere...</div>
+            </div>
+            
+            <button class="btn btn-primary" onclick="handleRegister()" id="register-btn">REGISTRIEREN</button>
+            
+            <div class="toggle-form">
+                Hast du schon ein Konto? <a onclick="toggleForm()">Login</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = window.location.origin + '/api';
+        
+        function toggleForm() {
+            document.getElementById('login-form').classList.toggle('hidden');
+            document.getElementById('register-form').classList.toggle('hidden');
+            clearErrors();
+        }
+        
+        function clearErrors() {
+            document.getElementById('login-error').classList.remove('show');
+            document.getElementById('register-error').classList.remove('show');
+        }
+        
+        function showError(formType, message) {
+            const errorEl = document.getElementById(`${formType}-error`);
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+        }
+        
+        async function handleLogin() {
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            
+            if(!username || !password) {
+                showError('login', '❌ Bitte füllen Sie alle Felder aus');
+                return;
+            }
+            
+            document.getElementById('login-loading').style.display = 'block';
+            document.getElementById('login-btn').disabled = true;
+            
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if(!response.ok) {
+                    showError('login', '❌ ' + data.error);
+                    document.getElementById('login-loading').style.display = 'none';
+                    document.getElementById('login-btn').disabled = false;
+                    return;
+                }
+                
+                // Save token and redirect
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('username', data.user.username);
+                localStorage.setItem('userElo', data.user.elo);
+                
+                window.location.href = 'index.html';
+                
+            } catch(error) {
+                showError('login', '❌ Verbindungsfehler: ' + error.message);
+                document.getElementById('login-loading').style.display = 'none';
+                document.getElementById('login-btn').disabled = false;
+            }
+        }
+        
+        async function handleRegister() {
+            const username = document.getElementById('register-username').value.trim();
+            const email = document.getElementById('register-email').value.trim();
+            const password = document.getElementById('register-password').value;
+            const passwordConfirm = document.getElementById('register-password-confirm').value;
+            
+            if(!username || !email || !password || !passwordConfirm) {
+                showError('register', '❌ Bitte füllen Sie alle Felder aus');
+                return;
+            }
+            
+            if(password !== passwordConfirm) {
+                showError('register', '❌ Passwörter stimmen nicht überein');
+                return;
+            }
+            
+            document.getElementById('register-loading').style.display = 'block';
+            document.getElementById('register-btn').disabled = true;
+            
+            try {
+                const response = await fetch(`${API_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+                
+                const data = await response.json();
+                
+                if(!response.ok) {
+                    showError('register', '❌ ' + data.error);
+                    document.getElementById('register-loading').style.display = 'none';
+                    document.getElementById('register-btn').disabled = false;
+                    return;
+                }
+                
+                // Save token and redirect
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('username', data.user.username);
+                localStorage.setItem('userElo', data.user.elo);
+                
+                window.location.href = 'index.html';
+                
+            } catch(error) {
+                showError('register', '❌ Verbindungsfehler: ' + error.message);
+                document.getElementById('register-loading').style.display = 'none';
+                document.getElementById('register-btn').disabled = false;
+            }
+        }
+        
+        // Check if already logged in
+        window.onload = () => {
+            if(localStorage.getItem('token')) {
+                window.location.href = 'index.html';
+            }
+        };
+        
+        // Enter key support
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('keypress', (e) => {
+                if(e.key === 'Enter') {
+                    if(document.getElementById('login-form').classList.contains('hidden')) {
+                        handleRegister();
+                    } else {
+                        handleLogin();
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
