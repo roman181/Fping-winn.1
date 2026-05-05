@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Clash of Pepe: Arena Pro</title>
+    <style>
+        :root {
+            --primary: #4caf50;
+            --accent: #d633ff;
+            --bg-dark: #0a0a0a;
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+
+        body { 
+            margin: 0; padding: 0; 
+            background-color: var(--bg-dark); 
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+            overflow: hidden; 
+            touch-action: none; 
+            user-select: none;
+            width: 100vw; height: 100vh;
+        }
+
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; flex-direction: column;
+            overflow: hidden;
+        }
+        .active { display: flex; }
+
+        /* MENU STYLE */
+        #menu-screen {
+            background: radial-gradient(circle at center, #1a2a6c, #000);
+        }
+
+        .menu-header {
+            padding: 20px; background: rgba(0,0,0,0.6);
+            display: flex; justify-content: space-between; align-items: center;
+            backdrop-filter: blur(10px); border-bottom: 1px solid var(--accent);
+        }
+
+        .coin-pill { 
+            background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 20px; 
+            color: #ffeb3b; border: 1px solid #ffeb3b; font-weight: bold; cursor: pointer;
+        }
+
+        .menu-content { flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 120px; }
+        
+        .shop-scroller { display: flex; gap: 15px; overflow-x: auto; padding: 10px 5px; scrollbar-width: none; }
+        .chest-card {
+            min-width: 110px; height: 130px; background: #2a1a0a; border-radius: 12px; 
+            border: 2px solid #8d6e63; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; transition: 0.2s; cursor: pointer;
+        }
+        .chest-card:active { transform: scale(0.95); }
+
+        .inventory-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; margin-top: 20px; }
+        .unit-row { 
+            background: rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; 
+            border: 1px solid #333; display: flex; justify-content: space-between; align-items: center;
+        }
+        .unit-info { display: flex; align-items: center; gap: 15px; }
+        .unit-img-ui { width: 50px; height: 50px; object-fit: contain; }
+
+        .merge-btn { 
+            background: var(--primary); border: none; color: white; padding: 10px 15px; 
+            border-radius: 8px; font-weight: bold; cursor: pointer;
+        }
+        .merge-btn:disabled { background: #333; color: #777; cursor: default; }
+
+        /* DECK BUILDER STYLES */
+        .deck-builder {
+            background: rgba(26,42,108,0.3); border-radius: 16px; padding: 15px; margin: 15px 0;
+            border: 1px solid var(--accent);
+        }
+        .deck-title { 
+            font-weight: bold; color: var(--accent); margin-bottom: 10px; 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .deck-slots {
+            display: flex; gap: 10px; overflow-x: auto; padding: 5px; scrollbar-width: none;
+        }
+        .deck-slot {
+            min-width: 70px; height: 90px; background: rgba(0,0,0,0.4); border-radius: 10px;
+            border: 2px dashed #555; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 11px; color: #aaa; position: relative; flex-shrink: 0;
+        }
+        .deck-slot.filled { border-style: solid; border-color: var(--primary); background: rgba(76,175,80,0.1); }
+        .deck-slot img { width: 45px; height: 45px; object-fit: contain; margin-bottom: 5px; }
+        .deck-slot .remove { 
+            position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; 
+            background: #f44336; border-radius: 50%; font-size: 12px; display: flex; 
+            align-items: center; justify-content: center; cursor: pointer; border: 2px solid white;
+        }
+        .deck-add-btn {
+            min-width: 70px; height: 90px; background: rgba(214,51,255,0.2); border-radius: 10px;
+            border: 2px dashed var(--accent); color: var(--accent); font-size: 24px;
+            display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+        }
+        .deck-add-btn:hover { background: rgba(214,51,255,0.4); }
+
+        .play-floater {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            padding: 20px; padding-bottom: calc(20px + var(--safe-bottom));
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            display: flex; justify-content: center;
+        }
+        .btn-start {
+            width: 100%; max-width: 400px; height: 60px;
+            background: #ff9800; border: none; border-radius: 30px;
+            font-size: 20px; font-weight: 900; color: white;
+            box-shadow: 0 4px 15px rgba(230, 81, 0, 0.4); cursor: pointer;
+        }
+        .btn-start:disabled { background: #555; cursor: not-allowed; box-shadow: none; }
+
+        /* GAME UI */
+        #game-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        
+        .top-hud { 
+            padding: 15px; display: flex; justify-content: space-between; 
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+        }
+        .hp-container { width: 120px; }
+        .hp-bar-bg { width: 100%; height: 10px; background: #222; border-radius: 5px; border: 1px solid #444; overflow: hidden; }
+        .hp-fill { height: 100%; width: 100%; transition: width 0.3s; }
+
+        .bot-hud { 
+            position: absolute; bottom: 0; width: 100%; pointer-events: auto; 
+            padding: 15px; padding-bottom: calc(10px + var(--safe-bottom));
+            background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.4));
+        }
+
+        .elixir-bar-container { height: 12px; background: #111; border-radius: 6px; margin: 10px 0; border: 1px solid #333; overflow: hidden; }
+        .elixir-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+
+        .card-dock { display: flex; gap: 10px; overflow-x: auto; padding: 5px; scrollbar-width: none; }
+        .game-card {
+            min-width: 80px; height: 105px; background: #1a1a1a; border-radius: 12px;
+            border: 2px solid #444; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: transform 0.1s; flex-shrink: 0; position: relative; cursor: pointer;
+        }
+        .game-card.ready { border-color: var(--accent); box-shadow: 0 0 10px rgba(214, 51, 255, 0.4); }
+        .game-card.disabled { opacity: 0.4; filter: grayscale(0.8); cursor: default; }
+        
+        .g-cost { position: absolute; top: -5px; right: -5px; background: var(--accent); width: 22px; height: 22px; border-radius: 50%; font-size: 12px; display: flex; align-items: center; justify-content: center; border: 2px solid white; font-weight: bold; }
+        .g-img { width: 60%; height: 60%; object-fit: contain; }
+
+        #toast { 
+            position: fixed; top: 20%; left: 50%; transform: translateX(-50%); 
+            background: rgba(0,0,0,0.9); color: white; padding: 12px 25px; 
+            border-radius: 30px; opacity: 0; transition: 0.3s; z-index: 9999; border: 1px solid var(--accent); pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="menu-screen" class="screen active">
+        <div class="menu-header">
+            <div style="font-size: 22px; font-weight: 900; color: var(--accent);">PEPE GANG WARS</div>
+            <div class="coin-pill" id="coin-pill">🪙 <span id="coin-count">300</span></div>
+        </div>
+        <div class="menu-content">
+            <div class="shop-scroller">
+                <div class="chest-card" onclick="buyChest('small')"><span style="font-size:40px;">📦</span><div style="color:#ffeb3b;">50 🪙</div></div>
+                <div class="chest-card" onclick="buyChest('medium')"><span style="font-size:40px;">💼</span><div style="color:#ffeb3b;">100 🪙</div></div>
+                <div class="chest-card" onclick="buyChest('large')"><span style="font-size:40px;">💎</span><div style="color:#ffeb3b;">200 🪙</div></div>
+            </div>
+            
+            <div class="deck-builder">
+                <div class="deck-title">
+                    <span>⚔️ DEIN KAMPF-DECK</span>
+                    <span id="deck-count" style="color:var(--primary)">0/5</span>
+                </div>
+                <div class="deck-slots" id="deck-slots"></div>
+            </div>
+            
+            <h3 style="margin-top:25px; color: var(--primary);">DEINE ARMEE</h3>
+            <div class="inventory-list" id="inv-list"></div>
+        </div>
+        <div class="play-floater">
+            <button class="btn-start" id="start-btn" disabled>Wähle 5 Karten 🔥</button>
+        </div>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <canvas id="gameCanvas"></canvas>
+        <div id="game-ui">
+            <div class="top-hud">
+                <div class="hp-container">
+                    <div style="font-size:12px; margin-bottom:4px;">BASIS</div>
+                    <div class="hp-bar-bg"><div id="hp-p" class="hp-fill" style="background:var(--primary)"></div></div>
+                </div>
+                <div id="wave-display" style="text-align:center; font-weight:bold; font-size:18px;">WELLE 1</div>
+                <div class="hp-container">
+                    <div style="font-size:12px; margin-bottom:4px; text-align:right;">FEINDE</div>
+                    <div class="hp-bar-bg"><div id="hp-e" class="hp-fill" style="background:#f44336"></div></div>
+                </div>
+            </div>
+            <div class="bot-hud">
+                <div style="display:flex; justify-content:space-between;">
+                    <div style="color:var(--accent); font-weight:bold;">💧 ELIXIER: <span id="elixir-txt">0</span>/10</div>
+                    <div id="mute-toggle" style="cursor:pointer; pointer-events:auto;">🔊</div>
+                </div>
+                <div class="elixir-bar-container"><div id="elixir-bar" class="elixir-fill"></div></div>
+                <div class="card-dock" id="card-dock"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+<script>
+/** * CLASH OF PEPE: ARENA PRO - OPTIMIERTER KAMPF & ANGRIFF
+ */
+
+const CFG = { 
+    mapW: 950, 
+    elixirMax: 10, 
+    regen: 0.85, 
+    saveKey: "pepe_arena_pro_v2",
+    deckSize: 5
+};
+
+const UNIT_DB = {
+    frosch_soldat: { name: "Soldat", cost: 2, hp: 220, dmg: 28, rng: 65, spd: 60, atkSpd: 1.2, proj: null },
+    frosch_sniper: { name: "Sniper", cost: 4, hp: 120, dmg: 95, rng: 450, spd: 35, atkSpd: 0.8, proj: "🎯" },
+    frosch_pyro: { name: "Pyro", cost: 5, hp: 280, dmg: 50, rng: 130, spd: 45, atkSpd: 1.0, proj: "🔥" },
+    frosch_sanitaeter: { name: "Sanitäter", cost: 4, hp: 160, dmg: 12, rng: 220, spd: 45, atkSpd: 1.4, proj: "➕" },
+    frosch_schwer: { name: "Heavy", cost: 6, hp: 650, dmg: 40, rng: 80, spd: 30, atkSpd: 0.7, proj: null },
+    kroete_wache: { name: "Wache", cost: 3, hp: 450, dmg: 22, rng: 55, spd: 40, atkSpd: 1.1, proj: null },
+    pinguin_bomber: { name: "Bomber", cost: 5, hp: 200, dmg: 130, rng: 160, spd: 55, atkSpd: 0.9, proj: "💣" },
+    pinguin_don: { name: "Don", cost: 8, hp: 850, dmg: 65, rng: 75, spd: 35, atkSpd: 0.6, proj: null },
+    pinguin_fahrer: { name: "Fahrer", cost: 4, hp: 320, dmg: 35, rng: 65, spd: 100, atkSpd: 1.0, proj: null },
+    pinguin_hacker: { name: "Hacker", cost: 5, hp: 150, dmg: 55, rng: 320, spd: 45, atkSpd: 1.1, proj: "💻" },
+    pinguin_killer: { name: "Killer", cost: 5, hp: 240, dmg: 75, rng: 260, spd: 60, atkSpd: 1.3, proj: "🗡️" },
+    pinguin_schlaeger: { name: "Schläger", cost: 3, hp: 380, dmg: 45, rng: 55, spd: 55, atkSpd: 0.9, proj: null },
+    pinguin_schuetze: { name: "Schütze", cost: 3, hp: 200, dmg: 38, rng: 300, spd: 50, atkSpd: 1.0, proj: "🏹" },
+    schwein_doktor: { name: "Doktor", cost: 5, hp: 220, dmg: 18, rng: 230, spd: 45, atkSpd: 1.3, proj: "💊" },
+    schwein_lady: { name: "Lady", cost: 4, hp: 270, dmg: 45, rng: 190, spd: 55, atkSpd: 1.1, proj: "💄" },
+    schwein_patin: { name: "Patin", cost: 9, hp: 1100, dmg: 55, rng: 110, spd: 32, atkSpd: 0.8, proj: "💍" },
+    schwein_revolver: { name: "Outlaw", cost: 3, hp: 180, dmg: 48, rng: 230, spd: 65, atkSpd: 1.2, proj: "🔫" },
+    schwein_schlaeger: { name: "Brute", cost: 4, hp: 550, dmg: 50, rng: 65, spd: 45, atkSpd: 0.8, proj: null },
+    schwein_spion: { name: "Spion", cost: 5, hp: 170, dmg: 85, rng: 110, spd: 80, atkSpd: 1.4, proj: "🕵️" },
+    schwein_vollstrecker: { name: "Henker", cost: 7, hp: 750, dmg: 110, rng: 65, spd: 40, atkSpd: 0.7, proj: null }
+};
+
+const IMG_BASE = "https://raw.githubusercontent.com/roman181/Gangpepe/refs/heads/main/";
+const IMAGES = { bg: new Image() };
+IMAGES.bg.src = 'https://raw.githubusercontent.com/roman181/Repo/refs/heads/main/image-5.jpg';
+
+Object.keys(UNIT_DB).forEach(k => {
+    IMAGES[k] = new Image();
+    let suffix = k.includes('pyro') ? "-Tym3Ccer.png" : k.includes('sanitaeter') ? "-z_0OnH3z.png" : k.includes('schwer') ? "-Cd6R-nDc.png" : k.includes('sniper') ? "-S6-Fc7eD.png" : k.includes('soldat') ? "-Cz6FY-aH.png" : k.includes('kroete') ? "-BsWbIgwg.png" : k.includes('bomber') ? "-DhuuYLey.png" : k.includes('don') ? "-igpiw3XA.png" : k.includes('fahrer') ? "-CuX3ruKz.png" : k.includes('hacker') ? "-BL31tiVK.png" : k.includes('killer') ? "-Cl_1PnCM.png" : k.includes('pinguin_schlaeger') ? "-CquoLGFY.png" : k.includes('schuetze') ? "-DYLGXver.png" : k.includes('doktor') ? "-BUuSTzOH.png" : k.includes('lady') ? "-DITF5md6.png" : k.includes('patin') ? "-BQStUO70.png" : k.includes('revolver') ? "-5cHcjNPj.png" : k.includes('schwein_schlaeger') ? "-UpI3AsuC.png" : k.includes('spion') ? "-CG1H4PPL.png" : "-DAcS3E6B.png";
+    IMAGES[k].src = IMG_BASE + k + suffix;
+});
+
+const AUDIO = {
+    bgm: new Audio('https://github.com/roman181/Repo/raw/refs/heads/main/MT2.mp3'),
+    victory: new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3'),
+    spawn: new Audio('https://www.soundjay.com/buttons/sounds/button-20.mp3'),
+    hit: new Audio('https://www.soundjay.com/buttons/sounds/button-3.mp3')
+};
+AUDIO.bgm.loop = true;
+let muted = false;
+
+let player = { coins: 300, units: {}, wave: 1, deck: [] };
+Object.keys(UNIT_DB).forEach(k => player.units[k] = { l: 1, c: 0 });
+
+let game = {
+    active: false, ctx: null, cvs: null, w: 0, h: 0, camX: 0, elixir: 5, wTimer: 0, lastT: 0, shake: 0,
+    ents: [], projs: [], particles: [],
+    towers: { 
+        p:{x:80, hp:2500, max:2500, rng: 280, dmg: 35, cool: 0, atkSpd: 1.2}, 
+        e:{x:870, hp:2500, max:2500, rng: 280, dmg: 35, cool: 0, atkSpd: 1.2} 
+    },
+    battleDeck: []
+};
+
+function save() { localStorage.setItem(CFG.saveKey, JSON.stringify(player)); }
+function load() {
+    let s = localStorage.getItem(CFG.saveKey);
+    if(s) {
+        let d = JSON.parse(s);
+        player.coins = d.coins; player.wave = d.wave || 1;
+        if(d.deck) player.deck = d.deck;
+        Object.keys(d.units).forEach(k => { if(player.units[k]) player.units[k] = d.units[k]; });
+    }
+}
+
+// DECK BUILDER
+function renderDeckSlots() {
+    const container = document.getElementById('deck-slots');
+    const countEl = document.getElementById('deck-count');
+    const startBtn = document.getElementById('start-btn');
+    container.innerHTML = '';
+    player.deck.forEach((unitKey) => {
+        const slot = document.createElement('div');
+        slot.className = 'deck-slot filled';
+        slot.innerHTML = `<img src="${IMAGES[unitKey].src}"><div>${UNIT_DB[unitKey].name}</div><div class="remove" onclick="removeFromDeck('${unitKey}')">✕</div>`;
+        container.appendChild(slot);
+    });
+    for(let i = player.deck.length; i < CFG.deckSize; i++) {
+        if(i === player.deck.length) {
+            const addBtn = document.createElement('div'); addBtn.className = 'deck-add-btn'; addBtn.innerHTML = '+'; addBtn.onclick = openUnitSelector;
+            container.appendChild(addBtn);
+        } else {
+            const empty = document.createElement('div'); empty.className = 'deck-slot'; empty.innerHTML = '<div>Leer</div>'; container.appendChild(empty);
+        }
+    }
+    countEl.innerText = `${player.deck.length}/${CFG.deckSize}`;
+    startBtn.disabled = player.deck.length !== CFG.deckSize;
+    startBtn.innerHTML = player.deck.length !== CFG.deckSize ? `Wähle ${CFG.deckSize - player.deck.length} weitere 🔥` : 'KAMPF BEGINNEN 🔥';
+}
+function openUnitSelector() {
+    const available = Object.keys(UNIT_DB).filter(k => !player.deck.includes(k) && player.units[k].c > 0);
+    if(available.length === 0) return toast("Keine verfügbaren Karten!");
+    addToDeck(available[0]);
+}
+function addToDeck(k) {
+    if(player.deck.length >= CFG.deckSize || player.deck.includes(k)) return;
+    player.deck.push(k); save(); renderDeckSlots(); renderMenu(); toast(`${UNIT_DB[k].name} hinzugefügt!`);
+}
+function removeFromDeck(k) {
+    player.deck = player.deck.filter(u => u !== k); save(); renderDeckSlots(); renderMenu();
+}
+
+// PARTIKEL & EFFEKTE
+class Particle { constructor(x, y, color, size=3, speed=10) { this.x=x; this.y=y; this.vx=(Math.random()-0.5)*speed; this.vy=(Math.random()-0.5)*speed; this.life=1.0; this.color=color; this.size=size; }
+    update(dt) { this.x+=this.vx; this.y+=this.vy; this.life-=dt*2; }
+    draw(ctx) { ctx.globalAlpha=this.life; ctx.fillStyle=this.color; ctx.fillRect(this.x, this.y, this.size, this.size); ctx.globalAlpha=1; }
+}
+function spawnHit(x, y, color="#ffeb3b") { for(let i=0; i<10; i++) game.particles.push(new Particle(x, y, color)); game.shake=4; }
+function spawnTowerExplosion(x, y) { for(let i=0; i<45; i++) { let p=new Particle(x,y,i%2?"#ff9800":"#ff5722",4,15); p.life=2.0; game.particles.push(p); } game.shake=40; }
+function toast(m) { const t=document.getElementById('toast'); t.innerText=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0, 2500); }
+
+function renderMenu() {
+    document.getElementById('coin-count').innerText = Math.floor(player.coins);
+    const list = document.getElementById('inv-list'); list.innerHTML = '';
+    Object.keys(player.units).forEach(k => {
+        const u = player.units[k]; const inDeck = player.deck.includes(k);
+        const row = document.createElement('div'); row.className = `unit-row ${inDeck?'in-deck':''}`;
+        row.innerHTML = `<div class="unit-info"><img src="${IMAGES[k].src}" class="unit-img-ui"><div><div style="font-weight:bold; color:white;">${UNIT_DB[k].name} <span style="color:var(--primary)">Lvl ${u.l}</span> ${inDeck?'📋':''}</div><div style="font-size:12px; color:#aaa;">${u.c}/2 Karten</div></div></div><div style="display:flex; gap:8px;">${!inDeck?`<button class="add-to-deck" ${player.deck.length>=CFG.deckSize||u.c<1?'disabled':''} onclick="addToDeck('${k}')">+ Deck</button>`:''}<button class="merge-btn" ${u.c<2?'disabled':''} onclick="merge('${k}')">UPGRADE</button></div>`;
+        list.appendChild(row);
+    });
+    renderDeckSlots();
+}
+function buyChest(sz) {
+    const p={small:50, medium:100, large:200}[sz], n={small:2, medium:5, large:12}[sz];
+    if(player.coins>=p) { player.coins-=p; const keys=Object.keys(UNIT_DB); for(let i=0;i<n;i++) player.units[keys[Math.floor(Math.random()*keys.length)]].c++; save(); renderMenu(); toast("Karten erhalten!"); }
+    else toast("Nicht genug Coins!");
+}
+function merge(k) { player.units[k].c-=2; player.units[k].l++; save(); renderMenu(); toast(UNIT_DB[k].name+" Level UP!"); }
+
+// GAME CORE
+function startGame() {
+    if(player.deck.length!==CFG.deckSize) return toast(`Wähle erst ${CFG.deckSize} Karten!`);
+    document.getElementById('menu-screen').classList.remove('active');
+    document.getElementById('game-screen').classList.add('active');
+    game.cvs=document.getElementById('gameCanvas'); game.ctx=game.cvs.getContext('2d'); resize();
+    game.elixir=5; game.ents=[]; game.projs=[]; game.particles=[]; game.camX=0;
+    game.towers.p.hp=game.towers.p.max; game.towers.e.hp=game.towers.e.max;
+    game.battleDeck=[...player.deck];
+    AUDIO.bgm.play().catch(()=>{}); buildDeck(); game.active=true; game.lastT=performance.now();
+    requestAnimationFrame(loop);
+}
+function buildDeck() {
+    const dock=document.getElementById('card-dock'); dock.innerHTML='';
+    game.battleDeck.forEach(k=>{
+        const card=document.createElement('div'); card.className='game-card disabled'; card.id='card-'+k;
+        card.onclick=()=>spawn(k); card.innerHTML=`<div class="g-cost">${UNIT_DB[k].cost}</div><img src="${IMAGES[k].src}" class="g-img">`;
+        dock.appendChild(card);
+    });
+}
+function spawn(k) {
+    if(game.elixir>=UNIT_DB[k].cost) {
+        game.elixir-=UNIT_DB[k].cost;
+        game.ents.push(new Ent(k, true, player.units[k].l, game.ents.filter(e=>e.isP).length));
+        if(!muted) AUDIO.spawn.cloneNode().play();
+    }
+}
+
+// ✅ OPTIMIERTE EINHEITEN-KLASSE
+class Ent {
+    constructor(k, isP, lvl, laneIdx) {
+        const d = UNIT_DB[k];
+        this.k=k; this.isP=isP; this.lvl=lvl;
+        const scale = Math.pow(1.12, lvl-1);
+        this.max = d.hp * scale; this.hp = this.max;
+        this.dmg = d.dmg * scale; this.rng = d.rng; this.spd = d.spd; this.proj = d.proj;
+        this.atkDelay = 1.0 / (d.atkSpd || 1.0); this.cool = 0;
+        this.w = 65; this.h = 65; this.atkFlash = 0;
+        this.lane = laneIdx % 3; // 3 Spuren für bessere Formation
+        this.x = isP ? game.towers.p.x + 30 : game.towers.e.x - 30;
+        this.y = (game.h * 0.55) + (this.lane * 35 - 35) + (Math.random()*10-5);
+    }
+    update(dt) {
+        if(this.atkFlash > 0) this.atkFlash -= dt * 5;
+        if(this.cool > 0) this.cool -= dt;
+
+        // Intelligente Zielwahl: Priorität auf Feinde in Turm-Nähe, dann Distanz, dann HP
+        let target = null, bestScore = 99999;
+        const enemyTw = this.isP ? game.towers.e : game.towers.p;
+        game.ents.forEach(e => {
+            if(e.isP !== this.isP) {
+                let dist = Math.abs(e.x - this.x);
+                if(dist <= this.rng) {
+                    let score = dist + (enemyTw.isP ? enemyTw.x - e.x : e.x - enemyTw.x) * 0.5 + e.hp * 0.1;
+                    if(score < bestScore) { bestScore = score; target = e; }
+                }
+            }
+        });
+
+        let distTw = Math.abs(enemyTw.x - this.x);
+        if(!target && distTw <= this.rng) target = enemyTw;
+
+        if(target) {
+            if(this.cool <= 0) {
+                this.cool = this.atkDelay; this.atkFlash = 1;
+                if(typeof target === 'object' && target.hp !== undefined) {
+                    // Einheit angreifen
+                    if(this.proj) game.projs.push({x:this.x, y:this.y-30, tx:target.x, ty:target.y-30, p:this.proj, d:this.dmg, target:target, dead:false});
+                    else { target.hp -= this.dmg; spawnHit(target.x, target.y-30, this.isP?"#4caf50":"#f44336"); if(!muted) AUDIO.hit.currentTime=0, AUDIO.hit.play().catch(()=>{}); }
+                } else {
+                    // Turm angreifen
+                    enemyTw.hp -= this.dmg; spawnHit(enemyTw.x, this.y-20, "red"); if(!muted) AUDIO.hit.currentTime=0, AUDIO.hit.play().catch(()=>{});
+                }
+            }
+        } else {
+            // Bewegen mit Kollisionsvermeidung (einfach)
+            let move = this.spd * dt * (this.isP ? 1 : -1);
+            let blocked = false;
+            game.ents.forEach(e => {
+                if(e.isP === this.isP && e !== this && Math.abs(e.x - this.x) < 30 && Math.abs(e.y - this.y) < 30) blocked = true;
+            });
+            if(!blocked) this.x += move;
+        }
+    }
+    draw(ctx) {
+        ctx.save(); ctx.translate(this.x, this.y);
+        if(!this.isP) ctx.scale(-1, 1);
+        if(this.atkFlash > 0.5) { ctx.shadowBlur = 15; ctx.shadowColor = this.isP ? "#4caf50" : "#f44336"; }
+        ctx.drawImage(IMAGES[this.k], -this.w/2, -this.h, this.w, this.h);
+        ctx.restore();
+        ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(this.x-22, this.y-this.h-14, 44, 6);
+        ctx.fillStyle = this.isP ? "#4caf50" : "#f44336"; ctx.fillRect(this.x-22, this.y-this.h-14, 44 * (this.hp/this.max), 6);
+    }
+}
+
+// TURM ANGRIFFSLOGIK
+function updateTowers(dt) {
+    ['p', 'e'].forEach(side => {
+        const tw = game.towers[side];
+        tw.cool -= dt;
+        if(tw.cool <= 0) {
+            let closest = null, minD = 9999;
+            game.ents.forEach(e => {
+                if(e.isP !== (side==='p')) {
+                    let d = Math.abs(e.x - tw.x);
+                    if(d < tw.rng && d < minD) { minD = d; closest = e; }
+                }
+            });
+            if(closest) {
+                tw.cool = 1.0 / tw.atkSpd;
+                game.projs.push({x:tw.x, y:game.h*0.55, tx:closest.x, ty:closest.y-30, p: side==='p'?'🔰':'🔥', d:tw.dmg, target:closest, dead:false});
+                spawnHit(tw.x, game.h*0.55, side==='p'?"#4caf50":"#f44336");
+            }
+        }
+    });
+}
+
+function update(dt) {
+    if(game.elixir < CFG.elixirMax) game.elixir += CFG.regen * dt;
+    game.ents.forEach(e => e.update(dt));
+    game.ents = game.ents.filter(e => e.hp > 0);
+    updateTowers(dt);
+    
+    game.projs.forEach(p => {
+        if(p.dead) return;
+        let tx = p.target ? p.target.x : p.tx, ty = p.target ? p.target.y-30 : p.ty;
+        let dx = tx - p.x, dy = ty - p.y;
+        let dist = Math.sqrt(dx*dx+dy*dy);
+        if(dist < 15) { 
+            p.dead = true; 
+            if(p.target && p.target.hp > 0) { p.target.hp -= p.d; spawnHit(p.x, p.y, "#ffeb3b"); if(!muted) AUDIO.hit.currentTime=0, AUDIO.hit.play().catch(()=>{}); }
+        } else { p.x += (dx/dist)*800*dt; p.y += (dy/dist)*800*dt; }
+    });
+    game.projs = game.projs.filter(p => !p.dead);
+    game.particles.forEach(p => p.update(dt));
+    game.particles = game.particles.filter(p => p.life > 0);
+
+    // Wellen-System verbessert
+    game.wTimer += dt;
+    if(game.wTimer > (4.5 - Math.min(2.0, player.wave * 0.25))) {
+        game.wTimer = 0;
+        let keys = Object.keys(UNIT_DB);
+        game.ents.push(new Ent(keys[Math.floor(Math.random()*keys.length)], false, player.wave, game.ents.filter(e=>!e.isP).length));
+    }
+
+    let pUnits = game.ents.filter(e => e.isP);
+    if(pUnits.length) {
+        let avgX = pUnits.reduce((a,b)=>a+b.x, 0) / pUnits.length;
+        let targetCam = Math.max(0, Math.min(avgX - game.w/2, CFG.mapW - game.w));
+        game.camX += (targetCam - game.camX) * 0.08;
+    }
+    if(game.shake > 0) game.shake -= dt * 40;
+
+    document.getElementById('elixir-txt').innerText = Math.floor(game.elixir);
+    document.getElementById('elixir-bar').style.width = (game.elixir/10)*100 + "%";
+    document.getElementById('hp-p').style.width = Math.max(0,(game.towers.p.hp/game.towers.p.max)*100) + "%";
+    document.getElementById('hp-e').style.width = Math.max(0,(game.towers.e.hp/game.towers.e.max)*100) + "%";
+    document.getElementById('wave-display').innerText = "WELLE " + player.wave;
+
+    game.battleDeck.forEach(k => {
+        const card = document.getElementById('card-'+k);
+        if(card) {
+            if(game.elixir >= UNIT_DB[k].cost) card.classList.add('ready'), card.classList.remove('disabled');
+            else card.classList.add('disabled'), card.classList.remove('ready');
+        }
+    });
+
+    if(game.towers.p.hp <= 0) endGame(false);
+    if(game.towers.e.hp <= 0) endGame(true);
+}
+
+function draw() {
+    let ctx = game.ctx; ctx.clearRect(0,0,game.w, game.h);
+    ctx.save();
+    if(game.shake > 0) ctx.translate((Math.random()-0.5)*game.shake, (Math.random()-0.5)*game.shake);
+    ctx.translate(-game.camX, 0);
+    ctx.drawImage(IMAGES.bg, 0, 0, CFG.mapW, game.h);
+    
+    // Türme zeichnen
+    ctx.font = "90px Arial"; ctx.textAlign = "center";
+    ctx.fillText("🏰", game.towers.p.x, game.h * 0.58);
+    ctx.fillText("🏯", game.towers.e.x, game.h * 0.58);
+    ctx.font = "16px Arial"; ctx.fillStyle = "#fff";
+    ctx.fillText(Math.floor(game.towers.p.hp), game.towers.p.x, game.h * 0.58 + 40);
+    ctx.fillText(Math.floor(game.towers.e.hp), game.towers.e.x, game.h * 0.58 + 40);
+    
+    game.ents.sort((a,b) => a.y - b.y).forEach(e => e.draw(ctx));
+    game.projs.forEach(p => {
+        ctx.font = "22px Arial"; ctx.fillText(p.p, p.x-10, p.y+5);
+    });
+    game.particles.forEach(p => p.draw(ctx));
+    ctx.restore();
+}
+
+function endGame(win) {
+    game.active = false; AUDIO.bgm.pause();
+    let tx = win ? game.towers.e.x : game.towers.p.x;
+    spawnTowerExplosion(tx, game.h * 0.6);
+    if(win) { if(!muted) AUDIO.victory.play(); player.coins += 200 + (player.wave * 10); player.wave++; toast("💥 BASIS ZERSTÖRT! SIEG! 💥"); }
+    else toast("💀 DEINE BASIS IST GEFALLEN...");
+    save();
+    setTimeout(() => { document.getElementById('game-screen').classList.remove('active'); document.getElementById('menu-screen').classList.add('active'); renderMenu(); }, 2800);
+}
+
+function resize() { game.w = window.innerWidth; game.h = window.innerHeight; game.cvs.width = game.w; game.cvs.height = game.h; }
+function loop(t) { if(!game.active) return; let dt = Math.min(0.1, (t - game.lastT)/1000); game.lastT = t; update(dt); draw(); requestAnimationFrame(loop); }
+
+document.getElementById('start-btn').onclick = startGame;
+document.getElementById('mute-toggle').onclick = () => { muted = !muted; AUDIO.bgm.muted = muted; AUDIO.hit.muted = muted; document.getElementById('mute-toggle').innerText = muted ? "🔇" : "🔊"; };
+window.addEventListener('resize', resize);
+window.onload = () => { load(); renderMenu(); };
+</script>
+</body>
+</html>
